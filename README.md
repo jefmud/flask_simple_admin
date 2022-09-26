@@ -1,38 +1,79 @@
-# flask_simple_admin
-simple MongoDB administration panel
+# bottle_simple_admin
 
-## Flask Simple Admin 
-- implements Admin class user interface
-for use with the Flask framework.
+The purpose of this repository is to provide a simple adminstration and user authentication for Bottle.
 
-There is some refactoring from Minimus_admin and Bottle_simple_admin.
-must have either MontyDB (stand-alone) or PyMongo (to a MongoDB instance)
-if you expect it to do anything
+## requirements
 
-## License - MIT License
+* bottle (https://github.com/bottlepy/bottle)
+* bottle_session (https://github.com/jefmud/bottle_session)
 
-no guarantees of suitability for your app
+# Installation
 
-## version 0.0.1
-   Added support for per collection schema
-   requires TEMPLATE_PATH to find jinja2 templates (that's good that they are separate)
-  TEMPLATE_PATH[:] = ['templates', 'bottle_simple_admin/templates']
+```
+$ mkdir sample-proj
+$ cd sample-proj
+$ git clone https://github.com/jefmud/bottle_session
+$ git clone https://github.com/jefmud/bottle_simple_admin
+```
 
-## version 0.0.2
-  Added support for v2 schema handles UI labels (backward compatible)
+# Usage
 
- version 0.0.3 - Added support for v3 schema (backward compatible to all)
-   can add data via schema, schema supports JSON nesting with a
-   dot notation. (reflected in UI)
-  unfortunately more complex logic and Admin.edit_schema and Admin.edit_fields
-   Admin.edit_fields() - more complex since it handles all
-                    field-based and schema-based saves (new and existing)
-      import known limitation - you cannot add a nested type without a schema!
-   This version also allows support of a number of HTML5 input types
+Here's a simple program that uses `bottle_simple_admin`
 
-## version 0.0.4 - Added support for list-views.
-    A list-view is a simple schema extension that allows the user to define
-    a list-view by using a simple caret ('^') prefix in front of the field
-    that will show up in a list view.  It paves the way for data required
-    type validation in the
-    next version by use of an asterisk ('*') in front of a required (validated) field
+```
+from bottle import Bottle, TEMPLATE_PATH, jinja2_template
+from bottle_session import Session
+from bottle_simple_admin import Admin, url_for, render_template
+import sys
+
+# Initialize Bottle, session, and admin
+app = Bottle()
+session = Session('somethingsSecret')
+admin = Admin(app, session)
+
+# THIS IS OF KEY IMPORTANCE!!
+TEMPLATE_PATH[:] = ['templates', 'bottle_simple_admin/templates']
+
+@app.route('/')
+def index():
+    return """
+    <html>
+    <body>Admin interface - <a href="/admin">click here</a></body>
+    </html>
+    """
+
+if __name__ == '__main__':
+    if '--runserver' in sys.argv:
+        app.run(port=5000, server="paste")
+    else:
+        admin.user_services_cli(sys.argv)
+    print('requires command after script e.g. --runserver, --createuser, etc.')
+```
+
+# getting ready
+
+We will have to create a user or two before running the program.
+
+```
+$ python app.py --createuser
+Username (required): admin
+Real Name: Admin User
+Email: admin@example.com
+Password (required):password
+Created user
+```
+
+# Running our program
+
+```
+$ python app.py --runserver
+Bottle v0.12.23 server starting up (using PasteServer())...
+Listening on http://127.0.0.1:5000/
+Hit Ctrl-C to quit.
+
+serving on http://127.0.0.1:5000
+```
+
+# Finally
+Have fun!
+
