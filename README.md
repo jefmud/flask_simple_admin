@@ -1,38 +1,31 @@
-# bottle_simple_admin
+# flask_simple_admin
 
-The purpose of this repository is to provide a simple adminstration and user authentication for Bottle.
+The purpose of this repository is to provide a simple adminstration and user authentication for Flask.
 
 ## requirements
 
-* bottle (https://github.com/bottlepy/bottle)
-* bottle_session (https://github.com/jefmud/bottle_session)
+* flask (https://github.com/bottlepy/bottle)
 
 # Installation
 
 ```
 $ mkdir sample-proj
 $ cd sample-proj
-$ git clone https://github.com/jefmud/bottle_session
-$ git clone https://github.com/jefmud/bottle_simple_admin
+$ git clone https://github.com/jefmud/flask_simple_admin
 ```
 
 # Usage
 
-Here's a simple program that uses `bottle_simple_admin`
+Here's a simple program that uses `flask_simple_admin`
 
 ```
-from bottle import Bottle, TEMPLATE_PATH, jinja2_template
-from bottle_session import Session
-from bottle_simple_admin import Admin, url_for, render_template
+from flask import Flask, render_template
+from flask_simple_admin import Admin
 import sys
 
-# Initialize Bottle, session, and admin
-app = Bottle()
-session = Session('somethingsSecret')
-admin = Admin(app, session)
-
-# THIS IS OF KEY IMPORTANCE!!
-TEMPLATE_PATH[:] = ['templates', 'bottle_simple_admin/templates']
+app = Flask(__name__)
+app.secret_key = 'secret!' # set your key to something no one has seen
+admin = Admin(app)
 
 @app.route('/')
 def index():
@@ -43,11 +36,7 @@ def index():
     """
 
 if __name__ == '__main__':
-    if '--runserver' in sys.argv:
-        app.run(port=5000, server="paste")
-    else:
-        admin.user_services_cli(sys.argv)
-    print('requires command after script e.g. --runserver, --createuser, etc.')
+    admin.user_services_cli(sys.argv)
 ```
 
 # getting ready
@@ -67,7 +56,9 @@ Created user
 
 ```
 $ python app.py --runserver
-Bottle v0.12.23 server starting up (using PasteServer())...
+
+ * Serving Flask app 'app.py'
+ * Debug mode: off
 Listening on http://127.0.0.1:5000/
 Hit Ctrl-C to quit.
 
