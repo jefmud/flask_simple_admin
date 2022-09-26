@@ -1,10 +1,14 @@
 # flask_simple_admin
 
-The purpose of this repository is to provide a simple adminstration and user authentication for Flask.
+The purpose of this repository is to provide a simple adminstration and user authentication for Flask.  This repository was adapted from `minimus_admin` and ported to `bottle_admin` and now Flask.  Probably at some point, Django.
+
+Supports MongoDB and MontyDB as a flat file alternative to Mongo.
 
 ## requirements
 
-* flask (https://github.com/bottlepy/bottle)
+* flask (https://github.com/pallets/flask)
+* pymongo (https://github.com/mongodb/mongo-python-driver)
+* montydb (https://github.com/davidlatwe/montydb) - an excellent alternative to PyMongo
 
 # Installation
 
