@@ -737,11 +737,35 @@ class Admin:
             except:
                 error = 1
                 errors.append("No server argument supplied.")
+        
+        keyfile = None
+        if '--keyfile' in args:
+            keyfile = args[args.index('--keyfile')+1]
+            
+        certfile = None
+        if '--certfile' in args:
+            certfile = args[args.index('--certfile')+1]
 
         if '--runserver' in args:
             if not error:
                 try:
-                    _app.run(host=host, port=port, server=server)
+                    if server == 'waitress':
+                        # in case waitress is your server
+                        from waitress import serve
+                        print(f"Waitress serving {host}:{port}")
+                        serve(_app, host=host, port=port)
+                        
+                    if server == 'paste':
+                        # in case you want to use paste
+                        from paste import httpserver
+                        from paste.translogger import TransLogger
+                        handler = TransLogger(_app.wsgi_app, setup_console_handler=(True))
+                        print("Starting Paste Server")
+                        httpserver.serve(handler, host=host, port=port)
+                        
+                    # default to wsgiref
+                    _app.run(host=host, port=port)
+                    
                 except Exception as e:
                     errors.append("Server error: " + str(e))
 
@@ -1085,5 +1109,5 @@ def render_template(filename, **kwargs):
     return "ERROR: render_template - Failed to find {}".format(filename)
 
 if __name__ == '__main__':
-    print("... Bottle_Simple_Admin is not intended for direct execution. ...")
+    print("... Flask_Simple_Admin is not intended for direct execution. ...")
     print("done")
