@@ -22,7 +22,7 @@
 #   dot notation. (reflected in UI)
 #   unfortunately more complex logic and Admin.edit_schema and Admin.edit_fields
 #   Admin.edit_fields() - more complex since it handles all
-#                    field-based and schema-based saves (new and existing)
+#                    field-based and schema-based saves (new and existing)__
 #      import known limitation - you cannot add a nested type without a schema!
 #   This version also allows support of a number of HTML5 input types
 #
@@ -111,7 +111,7 @@ class Admin:
         if db_uri:
             app.client = MongoClient(db_uri)
         else:
-            set_storage(db_file)
+            set_storage(db_file, use_bson=True)
             app.db_file = db_file
             app.client = MontyClient(db_file)
 
