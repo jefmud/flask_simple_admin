@@ -123,7 +123,10 @@ class Admin:
                          endpoint='admin_login',
                          view_func=self.login,
                          methods=['GET', 'POST'])
-        app.add_url_rule(url_prefix + '/logout', "admin_logout", self.logout)
+        app.add_url_rule(url_prefix + '/logout', 
+                         endpoint="admin_logout",
+                         view_func=self.logout
+                         )
 
         #### routes to add/modify/delete data
         app.add_url_rule(rule=url_prefix,
@@ -138,20 +141,24 @@ class Admin:
                          methods=['GET', 'POST'])
         app.add_url_rule(rule=url_prefix + '/edit_schema/<coll>',
                          endpoint="admin_edit_schema",
-                         view_func=self.edit_schema)
+                         view_func=self.edit_schema,
+                         methods=['GET', 'POST'])
         app.add_url_rule(rule=url_prefix + '/edit_schema/<coll>/<id>',
                          endpoint="admin_edit_schema",
-                         view_func=self.edit_schema)
+                         view_func=self.edit_schema,
+                         methods=['GET', 'POST'])
         app.add_url_rule(rule=url_prefix + '/edit_raw/<coll>/<id>',
                          endpoint="admin_edit_json",
                          view_func=self.edit_json,
                          methods=['GET', 'POST'])
         app.add_url_rule(rule=url_prefix + '/delete/<coll>',
                          endpoint="admin_delete_collection",
-                         view_func=self.delete_collection_prompt)
+                         view_func=self.delete_collection_prompt,
+                         methods=['GET', 'POST'])
         app.add_url_rule(rule=url_prefix + '/delete/<coll>/<id>',
                          endpoint="admin_delete_collection_item",
-                         view_func=self.delete_collection_item)
+                         view_func=self.delete_collection_item,
+                         methods=['GET', 'POST'])
         app.add_url_rule(rule=url_prefix + '/add/<coll>',
                          endpoint="admin_add_collection_item",
                          view_func=self.add_collection_item,
@@ -315,13 +322,14 @@ class Admin:
                                    content=json.dumps(data),
                                    error=None)
 
-    def edit_fields(self, coll, id):
+    def edit_fields(self, coll, id, next=None):
         """
         edit_fields('collectionName', id) - render a specific record as fields
         ** combine with edit_schema() during refactor
         """
         if not self.login_check():
             return abort(401)
+        next = request.args.get('next', None)
         if not id == 'new':
             try:
                 key = {'_id': ObjectId(id)}
@@ -371,7 +379,8 @@ class Admin:
                     'message':
                     'Admin edit_fields() update_one, ' + str(e)
                 })
-
+            if next:
+                return redirect(next)
             return redirect(url_for('admin_view_collection', coll=coll))
         else:
             # view the data
@@ -404,6 +413,9 @@ class Admin:
         if not self.login_check():
             return abort(401)
 
+        # get query string, if present
+        next = request.args.get('next', None)
+        
         if id == 'new':
             data = {'_id': 'new'}
         else:
@@ -434,7 +446,9 @@ class Admin:
         return render_template('admin/edit_schema.html',
                                coll=coll,
                                fields=fields,
-                               id=data['_id'])
+                               id=data['_id'],
+                               next=next
+                               )
 
     def add_collection_item(self, coll):
         """Add a new item to the collection, raw JSON"""
@@ -718,7 +732,7 @@ class Admin:
                 host = args[idx + 1]
             except:
                 error = 1
-                errors.append("Bad or missing host.")
+                errors.append("Bad or missing host argument (e.g. --host 0.0.0.0)")
 
         port = 5000
         if '--port' in args:
@@ -727,7 +741,7 @@ class Admin:
                 port = int(args[idx + 1])
             except:
                 error = 1
-                errors.append("Bad or missing port argument.")
+                errors.append("Bad or missing 'port' value following '--port' argument. Expected integer (e.g. --port 5000).")
 
         server = "wsgiref"
         if '--server' in args:
@@ -736,8 +750,12 @@ class Admin:
                 server = args[idx + 1]
             except:
                 error = 1
-                errors.append("No server argument supplied.")
-        
+                errors.append("No server argument supplied (e.g. --server wsgiref)")
+                
+        quiet = False
+        if '--quiet' in args:
+            quiet = True
+            
         keyfile = None
         if '--keyfile' in args:
             keyfile = args[args.index('--keyfile')+1]
@@ -762,6 +780,38 @@ class Admin:
                         handler = TransLogger(_app.wsgi_app, setup_console_handler=(True))
                         print("Starting Paste Server")
                         httpserver.serve(handler, host=host, port=port)
+                        
+                    if server == 'gevent':
+                        """Gevent server, high speed, but no threading. Supports SSL (if keyfile and certfile are set)"""
+                        from gevent import pywsgi
+                        address = (host, port)
+                        print("Gevent serving on {}:{}".format(host, port))
+                        if keyfile or certfile:
+                            httpd = pywsgi.WSGIServer(address, self.app, keyfile=keyfile, certfile=certfile, ssl_context='adhoc')
+                        else:
+                            httpd = pywsgi.WSGIServer(address, self.app)
+                        httpd.serve_forever()
+                            
+                    if server == 'twisted':
+                        """Twisted server - a bit more complicated server.
+                        High performance for prodcution.  Supports SSL (if keyfile and certfile are set)
+                        """
+                        from twisted.web.server import Site
+                        from twisted.web.wsgi import WSGIResource
+                        from twisted.internet import reactor
+                        if not quiet:
+                            from twisted.python.log import startLogging
+                            import sys
+                            startLogging(sys.stdout)
+                        resource = WSGIResource(reactor, reactor.getThreadPool(), self.app)
+                        site = Site(resource)
+                        if certfile:
+                            from twisted.internet import ssl
+                            sslContext = ssl.DefaultOpenSSLContextFactory(keyfile, certfile)
+                            reactor.listenSSL(port, site, sslContext)
+                        else:
+                            reactor.listenTCP(port, site)
+                        reactor.run()
                         
                     # default to wsgiref
                     _app.run(host=host, port=port)
