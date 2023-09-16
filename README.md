@@ -15,7 +15,7 @@ Supports MongoDB and MontyDB as a flat file alternative to Mongo.
 * waitress (preferred server for proxy)
 * paste (old reliable!)
 * gevent (fast server can handle certificates)
-* twisted (preferred server for simple deployment)
+* twisted (preferred server for simple non-proxy deployment)
 
 # Installation
 
