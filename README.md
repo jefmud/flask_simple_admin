@@ -10,6 +10,13 @@ Supports MongoDB and MontyDB as a flat file alternative to Mongo.
 * pymongo (https://github.com/mongodb/mongo-python-driver)
 * montydb (https://github.com/davidlatwe/montydb) - an excellent alternative to PyMongo
 
+### optional
+
+* waitress (preferred server for proxy)
+* paste (old reliable!)
+* gevent (fast server can handle certificates)
+* twisted (preferred server for simple deployment)
+
 # Installation
 
 ```
