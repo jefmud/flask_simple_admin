@@ -9,6 +9,7 @@ Supports MongoDB and MontyDB as a flat file alternative to Mongo.
 * flask (https://github.com/pallets/flask)
 * pymongo (https://github.com/mongodb/mongo-python-driver)
 * montydb (https://github.com/davidlatwe/montydb) - an excellent alternative to PyMongo
+* passlib (https://passlib.readthedocs.io/en/stable/) - crossplatform hashing library
 
 ### optional
 
