@@ -27,31 +27,63 @@
       let fileInput = this;
       let formData = new FormData();
       formData.append('file', fileInput.files[0]);
-  
-      // STATIC URL until I can find a way to get it dynamically, url_for('admin_upload_file') does not work
-      fetch("/admin/upload_file", {
-          method: 'POST',
-          body: formData
-      })
-      .then(response => response.json())
-      .then(data => {
-          if (data.file_path) {
-              // Update the displayed file name
-              document.querySelector('.file-name').innerText = data.file_path;
-              // Optionally, you can store the full file path in a hidden input
-              let hiddenInput = document.createElement('input');
-              hiddenInput.type = 'hidden';
-              hiddenInput.name = '{{ name }}_path';
-              hiddenInput.value = data.file_path;
-              fileInput.closest('form').appendChild(hiddenInput);
-          } else {
-              alert('File upload failed');
+
+      // Create progress bar elements
+      let progressBarContainer = document.createElement('div');
+      progressBarContainer.classList.add('progress');
+      progressBarContainer.style.marginTop = '1rem';
+      let progressBar = document.createElement('progress');
+      progressBar.classList.add('progress-bar', 'is-primary');
+      progressBar.max = 100;
+      progressBar.value = 0;
+      progressBarContainer.appendChild(progressBar);
+      fileInput.closest('.field').appendChild(progressBarContainer);
+
+      // Create XMLHttpRequest to handle file upload
+      let xhr = new XMLHttpRequest();
+      xhr.open('POST', '/admin/upload_file', true);
+
+      // Update progress bar during the upload
+      xhr.upload.onprogress = function(event) {
+          if (event.lengthComputable) {
+              let percentComplete = (event.loaded / event.total) * 100;
+              progressBar.value = percentComplete;
           }
-      })
-      .catch(error => {
-          console.error('Error:', error);
+      };
+
+      // Handle response from the server
+      xhr.onload = function() {
+          if (xhr.status === 200) {
+              let response = JSON.parse(xhr.responseText);
+              if (response.file_path) {
+                  // Update the displayed file name
+                  document.querySelector('.file-name').innerText = response.file_path;
+
+                  // Optionally, you can store the full file path in a hidden input
+                  let hiddenInput = document.createElement('input');
+                  hiddenInput.type = 'hidden';
+                  hiddenInput.name = '{{ name }}_path';
+                  hiddenInput.value = response.file_path;
+                  fileInput.closest('form').appendChild(hiddenInput);
+              } else {
+                  alert('File upload failed');
+              }
+          } else {
+              alert('An error occurred while uploading the file');
+          }
+
+          // Remove the progress bar after completion
+          progressBarContainer.remove();
+      };
+
+      // Handle error during upload
+      xhr.onerror = function() {
           alert('An error occurred while uploading the file');
-      });
+          progressBarContainer.remove();
+      };
+
+      // Send the form data
+      xhr.send(formData);
   });
 </script>
 {% endmacro %}
