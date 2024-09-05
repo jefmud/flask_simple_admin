@@ -33,10 +33,16 @@
 #    type validation in the
 #    next version by use of an asterisk ('*') in front of a required (validated) field
 #
-#
+# version 0.0.5 - Added support for file type upload
+#    A file field or type is indicated by the "file" part of the schema.
+#    The file is uploaded with a control and backing JavaScript macro.  
+#    Files are somewhat raw in that they can only be uploaded to a special
+#    directory /static/uploads/YYYYMM/<your_file_name>  where YYYY is year and MM is month.
+#    The JavaScript control is somewhat flexible because you can upload multiple files.
+#    In a later version I will add a file manager, which may be a better tactic
 ##################################
 __author__ = 'Jeff Muday'
-__version__ = '0.0.4'
+__version__ = '0.0.5'
 __license__ = 'MIT'
 
 from flask import Flask, redirect, abort, request, url_for, session
@@ -44,6 +50,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from montydb import MontyClient, set_storage
 import json
+import datetime
 from pymongo import MongoClient
 from bson import ObjectId
 import pathlib
@@ -171,6 +178,10 @@ class Admin:
                          endpoint="admin_mod_collection",
                          view_func=self.add_mod_collection,
                          methods=['GET', 'POST'])
+        app.add_url_rule(rule=url_prefix + '/upload_file',
+                         endpoint="admin_upload_file",
+                         view_func=self.upload_file,
+                         methods=['POST'])
 
     def login(self, filename=None, next=None):
         """
@@ -435,7 +446,14 @@ class Admin:
             if not id == 'new':
                 # get existing record
                 data = _db[coll].find_one(key)
+            
+ 
             fields = _schema_transform(data, schema)
+            # check if fields contains a "file" type element
+            # then add another form element with its value set to the filename
+            #for field in fields:
+            #    if field['control'] == 'file':
+            #        field['placeholder'] = field['value']
             data['_id'] = str(data['_id'])
         except Exception as e:
             return jsonify({
@@ -443,6 +461,7 @@ class Admin:
                 'message': 'Admin edit_schema(), view ' + str(e)
             })
 
+        #print(fields)
         return render_template('admin/edit_schema.html',
                                coll=coll,
                                fields=fields,
@@ -511,6 +530,13 @@ class Admin:
         try:
             key = {'_id': ObjectId(id)}
             old_data = _db[coll].find_one(key)
+            # delete physical file if it exists
+            if 'file_path' in old_data:
+                try:
+                    os.remove('static/uploads/' + old_data['file_path'])
+                except:
+                    print('Error deleting file: ' + old_data['file_path'])
+
         except Exception as e:
             return jsonify({
                 'status': 'error',
@@ -541,6 +567,38 @@ class Admin:
             return abort(401)
         _db[coll].drop()
         return redirect(url_for('admin_view_all'))
+
+    def upload_file(self):
+        """
+        upload_file() - handle file upload POST only request, usually JavaScript file control calls this
+
+        This method is called when the file upload form is submitted
+        """
+        # login check
+        if not self.login_check():
+            return redirect(url_for('admin_login'))
+
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file part'}), 400
+    
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No selected file'}), 400
+
+        # Create year and month directory
+        now = datetime.datetime.now()
+        year_month = now.strftime("%Y%m")
+        target_dir = os.path.join(self.app.config['UPLOAD_FOLDER'], year_month)
+        os.makedirs(target_dir, exist_ok=True)
+
+        # Save the file
+        file_path = os.path.join(target_dir, file.filename)
+        file.save(file_path)
+
+        # Return the relative path for saving in the database or showing the file
+        relative_file_path = os.path.join(year_month, file.filename)
+        
+        return jsonify({'file_path': relative_file_path}), 200
 
     def unit_tests(self):
         """simple test of connectivity.  more tests should be included in separate module"""
