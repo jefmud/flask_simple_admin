@@ -101,6 +101,7 @@ class Admin:
         admin_database='flask_admin',
         users_collection='admin_users',
         require_authentication=True,
+        upload_folder='./static/uploads'
     ):
         """__init__() - initialize the administration area"""
         global _db, _app
@@ -113,7 +114,8 @@ class Admin:
         self.require_authentication = require_authentication
 
         self.template_path = os.path.dirname(__file__)
-
+        self.app.config['UPLOAD_FOLDER'] = upload_folder
+	    
         ### set up the database ###
         if db_uri:
             app.client = MongoClient(db_uri)
